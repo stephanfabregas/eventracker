@@ -27,7 +27,9 @@ Simple grid layout. Four columns, 3 rows.
 ### Backend
 
 #### Feedback Area
-Feedback. Span the four columns. Show current state (no response, or selected state). Perhaps show number of recorded events/response rate.
+Feedback. Span the four columns.
+Show current state (no response, or selected state).
+Perhaps show number of recorded events/response rate.
 
 #### Button control
 1. Left. Label "Left". Record value 0.

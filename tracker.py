@@ -1,7 +1,10 @@
+import time
 from Tkinter import Tk, RIGHT, BOTH, RAISED
 from ttk import Frame, Button, Style, Canvas
 
 class Display(Canvas):
+
+    KEYS = {"Left":"Left", "Right":"Right", "Up":"Both", "Down":"Neither"}
 
     def __init__(self, parent):
         super(Display, self).__init__()
@@ -11,10 +14,9 @@ class Display(Canvas):
         self.pack()
 
     def initDisplay(self):
-        self.epoch = 0
+        self.currentEpoch = 0
         self.savedEpoch = 0
         # self.startTime
-        # self.currentTime
 
         self.state = "NA"
 
@@ -28,49 +30,51 @@ class Display(Canvas):
         self.create_text(20, 30, anchor=W, text=self.state)
 
     def onKeyPressed(self, e):
-        # Check if in new epoch, checkEpoch method
+        self.synch()
+
         key = e.keysym
-
-        # Update state (maybe a setState method)
-        if key == "Left":
-            self.state = "Left"
-
-        if key == "Right":
-            self.state = "Right"
-
-        if key == "Up":
-            self.state= = "Both"
-
-        if key == "Down":
-            self.state = "Neither"
+        self.setState(key)
 
         self.onEvent()
 
+    # Need to add method(s) for button clicks
+
+    def setState(self, key):
+        if key in Display.KEYS:        
+            self.state = Display.KEYS[key]
+
     def onEvent(self):
-        # Use self.state to update the canvas
         self.drawStatus()
 
     def onTimer(self):
-        # Open file, write last epoch, close file
-        # Maybe not first... check logic
-        self.updateFile()
-        # Need to figure out how to prioritize this event...
-        # Track system time to check current Epoch #,
-        # Update self.currentTime
-        # Update self.epoch
-        # For range(checkEpoch (# unsaved epochs) - 1):
-            # Update epoch
-            # UpdateFile with NA
-            # If not, 
+        self.synch()
+        self.after(DELAY, self.onTimer())
 
-    def updateFile(self):
+    def synch(self):
+        self.setCurrentEpoch()
+        n = checkEpoch()
+        if n > 0:
+            if n > 1:
+                for i in range(n-1):
+                    self.updateFile("NA") # Add a note?
+            self.updateFile(self.state)
+            self.savedEpoch = self.currentEpoch
+            self.state = "NA"
+
+    def updateFile(self, data):
         # Open file
-        # Write/append current epoch
-        # Update last written epoch: self.savedEpoch
+        # Write/append data
         # Close file
 
+    def setCurrentEpoch(self):
+        t = int(time.time()/30)
+        if self.currentEpoch != t:
+            self.currentEpoch = t
+        # Also look for big changes in time
+            # If there's a big change, add a flag
+
     def checkEpoch(self):
-        # return self.epoch-self.savedEpoch
+        # return self.currentEpoch-self.savedEpoch
 
 class Tracker(Frame):
 
