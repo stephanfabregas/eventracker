@@ -1,43 +1,46 @@
 import time
-from Tkinter import Tk, RIGHT, BOTH, RAISED
-from ttk import Frame, Button, Style, Canvas
+try:
+    import Tkinter as tk
+except ImportError:
+    import tkinter as tk
 
-class Display(Canvas):
+class Display(tk.Canvas):
 
     KEYS = {"Left":"Left", "Right":"Right", "Up":"Both", "Down":"Neither"}
+    DELAY = 200
 
     def __init__(self, parent):
-        super(Display, self).__init__()
+        tk.Canvas.__init__(self, parent)
 
         self.parent = parent
         self.initDisplay()
-        self.pack()
 
     def initDisplay(self):
-        self.currentEpoch = 0
-        self.savedEpoch = 0
-        # self.startTime
+        self.currentEpoch = int(time.time()/30)
+        self.savedEpoch = int(time.time()/30)
 
         self.state = "NA"
 
-        self.drawStatus()
         self.bind_all("<Key>", self.onKeyPressed)
-        # bind the button press events as well
+        self.create_text(20, 30, anchor=tk.W, text=self.state, tag="state")
 
-        self.after(DELAY, self.onTimer())
+        self.after(Display.DELAY, self.onTimer)
 
     def drawStatus(self):
-        self.create_text(20, 30, anchor=W, text=self.state)
+        status = self.find_withtag("state")
+        self.delete(status[0])
+        self.create_text(20, 30, anchor=tk.W, text=self.state, tag="state")
 
     def onKeyPressed(self, e):
         self.synch()
 
-        key = e.keysym
+        try:
+            key = e.keysym
+        except AttributeError:
+            key = e
+
         self.setState(key)
-
         self.onEvent()
-
-    # Need to add method(s) for button clicks
 
     def setState(self, key):
         if key in Display.KEYS:        
@@ -48,11 +51,12 @@ class Display(Canvas):
 
     def onTimer(self):
         self.synch()
-        self.after(DELAY, self.onTimer())
+        self.onEvent()
+        self.after(Display.DELAY, self.onTimer)
 
     def synch(self):
         self.setCurrentEpoch()
-        n = checkEpoch()
+        n = self.checkEpoch()
         if n > 0:
             if n > 1:
                 for i in range(n-1):
@@ -62,6 +66,8 @@ class Display(Canvas):
             self.state = "NA"
 
     def updateFile(self, data):
+        print(data)
+        #pass
         # Open file
         # Write/append data
         # Close file
@@ -74,12 +80,12 @@ class Display(Canvas):
             # If there's a big change, add a flag
 
     def checkEpoch(self):
-        # return self.currentEpoch-self.savedEpoch
+        return self.currentEpoch-self.savedEpoch
 
-class Tracker(Frame):
+class Tracker(tk.Frame):
 
     def __init__(self, parent):
-        super(Tracker, self).__init__(parent)
+        tk.Frame.__init__(self, parent)
 
         self.parent = parent
         self.initUI()
@@ -87,10 +93,6 @@ class Tracker(Frame):
     def initUI(self):
 
         self.parent.title("Tracker")
-        self.style = Style()
-        self.style.theme_use("default")
-
-        Style().configure("TButton", padding=(0,5,0,5), font='serif 10')
 
         self.columnconfigure(0, pad=3)
         self.columnconfigure(1, pad=3)
@@ -102,29 +104,42 @@ class Tracker(Frame):
         self.rowconfigure(2, pad=3)
 
         # Canvas to read out current state and previous state
-        self.display = Display(parent)
-        display.grid(row=0, columnspan=2, sticky=W+E)
-        #
+        self.display = Display(self)
+        self.display.grid(row=0, columnspan=2, sticky=(tk.W+tk.E))
 
-        leftButton = Button(self, text="Left")
+        leftButton = tk.Button(self, text="Left", command=self.lbutton)
         leftButton.grid(row=1, column=0)
-        rightButton = Button(self, text="Right")
+        rightButton = tk.Button(self, text="Right", command=self.rbutton)
         rightButton.grid(row=1, column=1)
-        neitherButton = Button(self, text="Neither")
+        neitherButton = tk.Button(self, text="Neither", command=self.nbutton)
         neitherButton.grid(row=1, column=2)
-        bothButton = Button(self, text="Both")
+        bothButton = tk.Button(self, text="Both", command=self.bbutton)
         bothButton.grid(row=1, column=3)
 
-        exitButton = Button(self, text="Exit")
+        exitButton = tk.Button(self, text="Exit", command=self.onExit)
         exitButton.grid(row=2, column=0)
 
         self.pack()
 
-def main():
+    def lbutton(self):
+        self.display.onKeyPressed("Left")
 
-    root = Tk()
-    app = Tracker(root)
-    root.mainloop()
+    def rbutton(self):
+        self.display.onKeyPressed("Right")
+
+    def nbutton(self):
+        self.display.onKeyPressed("Down")
+
+    def bbutton(self):
+        self.display.onKeyPressed("Up")
+
+    def onExit(self):
+        self.quit()
+
+def main():
+    root = tk.Tk()
+    app = Tracker(parent=root)
+    app.mainloop()
 
 if __name__ == '__main__':
     main()
