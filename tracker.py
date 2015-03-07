@@ -1,4 +1,5 @@
 import time
+import pyglet.resource as pyglet
 try:
     import Tkinter as tk
 except ImportError:
@@ -6,88 +7,42 @@ except ImportError:
 
 class Display(tk.Canvas):
 
-    KEYS = {"Left":"Left", "Right":"Right", "Up":"Both", "Down":"Neither"}
     DELAY = 200
 
     def __init__(self, parent):
-        tk.Canvas.__init__(self, parent)
+        tk.Canvas.__init__(self, parent, width=300, height=20)
 
         self.parent = parent
-        self.initDisplay()
 
-    def initDisplay(self):
-        self.currentEpoch = int(time.time()/30)
-        self.savedEpoch = int(time.time()/30)
-
-        self.state = "NA"
-
-        self.bind_all("<Key>", self.onKeyPressed)
-        self.create_text(20, 30, anchor=tk.W, text=self.state, tag="state")
-
+        self.create_text(150, 10, anchor=tk.CENTER, text=self.parent.state, tag="state")
         self.after(Display.DELAY, self.onTimer)
 
     def drawStatus(self):
         status = self.find_withtag("state")
         self.delete(status[0])
-        self.create_text(20, 30, anchor=tk.W, text=self.state, tag="state")
-
-    def onKeyPressed(self, e):
-        self.synch()
-
-        try:
-            key = e.keysym
-        except AttributeError:
-            key = e
-
-        self.setState(key)
-        self.onEvent()
-
-    def setState(self, key):
-        if key in Display.KEYS:        
-            self.state = Display.KEYS[key]
-
-    def onEvent(self):
-        self.drawStatus()
+        self.create_text(150, 10, anchor=tk.CENTER, text=self.parent.state, tag="state")
 
     def onTimer(self):
-        self.synch()
-        self.onEvent()
+        self.parent.synch()
+        self.drawStatus()
         self.after(Display.DELAY, self.onTimer)
 
-    def synch(self):
-        self.setCurrentEpoch()
-        n = self.checkEpoch()
-        if n > 0:
-            if n > 1:
-                for i in range(n-1):
-                    self.updateFile("NA") # Add a note?
-            self.updateFile(self.state)
-            self.savedEpoch = self.currentEpoch
-            self.state = "NA"
-
-    def updateFile(self, data):
-        print(data)
-        #pass
-        # Open file
-        # Write/append data
-        # Close file
-
-    def setCurrentEpoch(self):
-        t = int(time.time()/30)
-        if self.currentEpoch != t:
-            self.currentEpoch = t
-        # Also look for big changes in time
-            # If there's a big change, add a flag
-
-    def checkEpoch(self):
-        return self.currentEpoch-self.savedEpoch
-
 class Tracker(tk.Frame):
+
+    KEYS = {"Left":"Left", "Right":"Right", "Up":"Both", "Down":"Neither",
+            "h":"Left", "j":"Neither", "k":"Both", "l":"Right"}
 
     def __init__(self, parent):
         tk.Frame.__init__(self, parent)
 
         self.parent = parent
+        self.currentEpoch = int(time.time()/30)
+        self.savedEpoch = int(time.time()/30)
+        self.state = "NA"
+        self.sound = pyglet.media('smb2_cherry.wav', streaming=False)
+
+        self.bind_all("<Key>", self.onKeyPressed)
+
         self.initUI()
 
     def initUI(self):
@@ -105,36 +60,73 @@ class Tracker(tk.Frame):
 
         # Canvas to read out current state and previous state
         self.display = Display(self)
-        self.display.grid(row=0, columnspan=2, sticky=(tk.W+tk.E))
+        self.display.grid(row=0, columnspan=4, sticky=(tk.W+tk.E))
 
-        leftButton = tk.Button(self, text="Left", command=self.lbutton)
+        leftButton = tk.Button(self, text="Left", command=lambda: self.onKeyPressed("Left"))
         leftButton.grid(row=1, column=0)
-        rightButton = tk.Button(self, text="Right", command=self.rbutton)
+        rightButton = tk.Button(self, text="Right", command=lambda: self.onKeyPressed("Right"))
         rightButton.grid(row=1, column=1)
-        neitherButton = tk.Button(self, text="Neither", command=self.nbutton)
+        neitherButton = tk.Button(self, text="Neither", command=lambda: self.onKeyPressed("Down"))
         neitherButton.grid(row=1, column=2)
-        bothButton = tk.Button(self, text="Both", command=self.bbutton)
+        bothButton = tk.Button(self, text="Both", command=lambda: self.onKeyPressed("Up"))
         bothButton.grid(row=1, column=3)
 
-        exitButton = tk.Button(self, text="Exit", command=self.onExit)
+        exitButton = tk.Button(self, text="Exit", command=lambda: self.onKeyPressed("q"))
         exitButton.grid(row=2, column=0)
 
         self.pack()
 
-    def lbutton(self):
-        self.display.onKeyPressed("Left")
+    def onKeyPressed(self, e):
+        try:
+            key = e.keysym
+        except AttributeError:
+            key = e
 
-    def rbutton(self):
-        self.display.onKeyPressed("Right")
+        if key == "q":
+            self.onExit()
 
-    def nbutton(self):
-        self.display.onKeyPressed("Down")
+        self.setState(key)
+        self.display.drawStatus()
 
-    def bbutton(self):
-        self.display.onKeyPressed("Up")
+    def setState(self, key):
+        if key in Tracker.KEYS:        
+            self.state = Tracker.KEYS[key]
 
     def onExit(self):
+        self.synch()
+        # Need to shut down media device before exit
         self.quit()
+
+    def synch(self):
+        self.setCurrentEpoch()
+        n = self.checkEpoch()
+        if n > 0:
+            if n > 1:
+                for i in range(n-1):
+                    self.updateFile("NA") # Add a note?
+            self.updateFile(self.state)
+            self.savedEpoch = self.currentEpoch
+            self.state = "NA"
+            self.sound.play()
+
+    def updateFile(self, data):
+        print(self.currentEpoch),
+        print(data),
+        print("\n"),
+        #pass
+        # Open file
+        # Write/append data
+        # Close file
+
+    def setCurrentEpoch(self):
+        t = int(time.time()/30)
+        if self.currentEpoch != t:
+            self.currentEpoch = t
+        # Also look for big changes in time
+            # If there's a big change, add a flag
+
+    def checkEpoch(self):
+        return self.currentEpoch-self.savedEpoch
 
 def main():
     root = tk.Tk()
