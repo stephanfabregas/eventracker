@@ -1,5 +1,5 @@
 import time
-import pyglet.resource as pyglet
+import pygame.mixer as pyg
 try:
     import Tkinter as tk
 except ImportError:
@@ -31,15 +31,19 @@ class Tracker(tk.Frame):
 
     KEYS = {"Left":"Left", "Right":"Right", "Up":"Both", "Down":"Neither",
             "h":"Left", "j":"Neither", "k":"Both", "l":"Right"}
+    EPOCH_LENGTH = 30
+    SOUND = "smb2_cherry.wav"
+    OUTFN = "tracker.csv"
 
     def __init__(self, parent):
         tk.Frame.__init__(self, parent)
 
         self.parent = parent
-        self.currentEpoch = int(time.time()/30)
-        self.savedEpoch = int(time.time()/30)
+        self.currentEpoch = int(time.time()/Tracker.EPOCH_LENGTH)
+        self.savedEpoch = int(time.time()/Tracker.EPOCH_LENGTH)
         self.state = "NA"
-        self.sound = pyglet.media('smb2_cherry.wav', streaming=False)
+        pyg.init()
+        pyg.music.load(Tracker.SOUND)
 
         self.bind_all("<Key>", self.onKeyPressed)
 
@@ -62,17 +66,22 @@ class Tracker(tk.Frame):
         self.display = Display(self)
         self.display.grid(row=0, columnspan=4, sticky=(tk.W+tk.E))
 
-        leftButton = tk.Button(self, text="Left", command=lambda: self.onKeyPressed("Left"))
+        leftButton = tk.Button(self, text="Left",
+                               command=lambda: self.onKeyPressed("Left"))
         leftButton.grid(row=1, column=0)
-        rightButton = tk.Button(self, text="Right", command=lambda: self.onKeyPressed("Right"))
+        rightButton = tk.Button(self, text="Right",
+                                command=lambda: self.onKeyPressed("Right"))
         rightButton.grid(row=1, column=1)
-        neitherButton = tk.Button(self, text="Neither", command=lambda: self.onKeyPressed("Down"))
+        neitherButton = tk.Button(self, text="Neither",
+                                  command=lambda: self.onKeyPressed("Down"))
         neitherButton.grid(row=1, column=2)
-        bothButton = tk.Button(self, text="Both", command=lambda: self.onKeyPressed("Up"))
+        bothButton = tk.Button(self, text="Both",
+                               command=lambda: self.onKeyPressed("Up"))
         bothButton.grid(row=1, column=3)
 
-        exitButton = tk.Button(self, text="Exit", command=lambda: self.onKeyPressed("q"))
-        exitButton.grid(row=2, column=0)
+        exitButton = tk.Button(self, text="Exit",
+                               command=lambda: self.onKeyPressed("q"))
+        exitButton.grid(row=2, columnspan=4)
 
         self.pack()
 
@@ -94,7 +103,6 @@ class Tracker(tk.Frame):
 
     def onExit(self):
         self.synch()
-        # Need to shut down media device before exit
         self.quit()
 
     def synch(self):
@@ -103,23 +111,18 @@ class Tracker(tk.Frame):
         if n > 0:
             if n > 1:
                 for i in range(n-1):
-                    self.updateFile("NA") # Add a note?
-            self.updateFile(self.state)
+                    self.updateFile(i, "NA, synch problem")
+            self.updateFile(0, self.state + ",")
             self.savedEpoch = self.currentEpoch
             self.state = "NA"
-            self.sound.play()
+            pyg.music.play()
 
-    def updateFile(self, data):
-        print(self.currentEpoch),
-        print(data),
-        print("\n"),
-        #pass
-        # Open file
-        # Write/append data
-        # Close file
+    def updateFile(self, n, data):
+        with open(Tracker.OUTFN, "a") as f:
+            f.write(str(self.savedEpoch+n+1) + "," + data + "\n")
 
     def setCurrentEpoch(self):
-        t = int(time.time()/30)
+        t = int(time.time()/Tracker.EPOCH_LENGTH)
         if self.currentEpoch != t:
             self.currentEpoch = t
         # Also look for big changes in time
