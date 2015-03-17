@@ -1,39 +1,58 @@
-const int ledPin1 = 8;
-const int ledPin2 = 9;
-const int ledPin3 = 10;
-const int ledPin4 = 11;
-const int inputPin1 = 2;
-const int inputPin2 = 3;
-const int inputPin3 = 4;
-const int inputPin4 = 5;
+int ledPins[] = {8, 9, 10, 11};
+int inputPins[] = {2, 3, 4, 5};
+int numPins = 4;
+unsigned long time;
+const int TIMER = 100;
+int state = -1;
+int val[] = {0, 0, 0, 0};
+unsigned long currentTime = 0;
 
 void setup() {
-  pinMode(ledPin1, OUTPUT);
-  pinMode(ledPin2, OUTPUT);
-  pinMode(ledPin3, OUTPUT);
-  pinMode(ledPin4, OUTPUT);
-  pinMode(inputPin1, INPUT);
-  pinMode(inputPin2, INPUT);
-  pinMode(inputPin3, INPUT);
-  pinMode(inputPin4, INPUT);
+  for (int thisPin = 0; thisPin < numPins; thisPin++) {
+    pinMode(ledPins[thisPin], OUTPUT);
+    pinMode(inputPins[thisPin], INPUT);
+  }
+  Serial.begin(9600);
 }
 
 void loop(){
-  int val1 = digitalRead(inputPin1);
-  int val2 = digitalRead(inputPin2);
-  int val3 = digitalRead(inputPin3);
-  int val4 = digitalRead(inputPin4);
+  currentTime = millis();
   
-  checkPin(val1, ledPin1);
-  checkPin(val2, ledPin2);
-  checkPin(val3, ledPin3);
-  checkPin(val4, ledPin4);
+  for (int thisPin = 0; thisPin < numPins; thisPin++) {
+    val[thisPin] = digitalRead(inputPins[thisPin]);
+  }
+  
+  state = setState();
+  lightState(int(state));
+    
+  if (abs(currentTime - time) > TIMER) {
+    serialWrite();
+    time = currentTime;
+  }
+
 }
 
-void checkPin(int val, int pin) {
-  if (val==HIGH) {
-   digitalWrite(pin, HIGH);
-  } else {
-   digitalWrite(pin, LOW);
+int setState() {
+  if (val[state]!=HIGH) {
+    for (int thisPin = 0; thisPin < numPins; thisPin++) {
+      if (val[thisPin]==HIGH) {
+        return(thisPin);
+      }
+    }
   }
+  return(state);
+}
+
+void lightState(int state) {
+    for (int thisPin = 0; thisPin < numPins; thisPin++) {
+      if (ledPins[thisPin]!=state) {
+        digitalWrite(ledPins[thisPin], LOW);
+      }
+    }
+    digitalWrite(ledPins[state], HIGH);
+}
+
+void serialWrite() {
+   Serial.print("Current state is: ");
+   Serial.println(state+1);
 }

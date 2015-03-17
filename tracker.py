@@ -125,8 +125,6 @@ class Tracker(tk.Frame):
         t = int(time.time()/Tracker.EPOCH_LENGTH)
         if self.currentEpoch != t:
             self.currentEpoch = t
-        # Also look for big changes in time
-            # If there's a big change, add a flag
 
     def checkEpoch(self):
         return self.currentEpoch-self.savedEpoch
