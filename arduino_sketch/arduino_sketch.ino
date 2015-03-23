@@ -53,6 +53,6 @@ void lightState(int state) {
 }
 
 void serialWrite() {
-   Serial.print("Current state is: ");
-   Serial.println(state+1);
+   Serial.println(state);
 }
+
