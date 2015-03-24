@@ -1,5 +1,4 @@
 import pygame.mixer as pyg
-import Queue
 import serial
 import time
 try:
@@ -9,7 +8,7 @@ except ImportError:
 
 class Display(tk.Canvas):
 
-    DELAY = 1
+    DELAY = 200
 
     def __init__(self, parent):
         tk.Canvas.__init__(self, parent, width=300, height=20)
@@ -25,9 +24,9 @@ class Display(tk.Canvas):
         self.create_text(150, 10, anchor=tk.CENTER, text=self.parent.state, tag="state")
 
     def onTimer(self):
+        self.parent.trackSerial()
         self.parent.synch()
         self.drawStatus()
-        self.parent.trackSerial()
         self.after(Display.DELAY, self.onTimer)
 
 class Tracker(tk.Frame):
@@ -35,10 +34,11 @@ class Tracker(tk.Frame):
     KEYS = {"Left":"Left", "Right":"Right", "Up":"Both", "Down":"Neither",
             "h":"Left", "j":"Neither", "k":"Both", "l":"Right", "0":"Left",
             "1":"Right", "2":"Both", "3":"Neither"}
+    STATES = {"Left":0, "Right":1, "Both":2, "Neither":3, "NA":4}
+    STATES2 = ["Left", "Right", "Up", "Down", "NA"]
     EPOCH_LENGTH = 30
     SOUND = "smb2_cherry.wav"
     OUTFN = "tracker.csv"
-    SERIALDELAY = 1000
 
     def __init__(self, parent):
         tk.Frame.__init__(self, parent)
@@ -54,13 +54,10 @@ class Tracker(tk.Frame):
         self.bind_all("<Key>", self.onKeyPressed)
         self.initUI()
 
-        self.queue = Queue.Queue(0)
         self.port = '/dev/ttyACM0'
         self.baudrate = 9600
         self.ser = serial.Serial(self.port, self.baudrate, timeout=1)        
-        self.serBuffer = ''
         self.trackSerial()
-        self.readQueue()
 
 
     def initUI(self):
@@ -109,6 +106,7 @@ class Tracker(tk.Frame):
             self.onExit()
 
         self.setState(key)
+        self.ser.write("W"+str(Tracker.STATES[self.state]))
         self.display.drawStatus()
 
     def setState(self, key):
@@ -119,14 +117,6 @@ class Tracker(tk.Frame):
         self.synch()
         self.quit()
 
-    def readQueue(self):
-        try:
-            key = self.queue.get(False)
-        except Queue.Empty:
-            pass
-        else:
-            self.setState(key)
-
     def synch(self):
         self.setCurrentEpoch()
         n = self.checkEpoch()
@@ -134,19 +124,22 @@ class Tracker(tk.Frame):
             if n > 1:
                 for i in range(n-1):
                     self.updateFile(i, "NA, synch problem")
-            if self.state == "NA":
-                self.readQueue()
             self.updateFile(0, self.state + ",")
             self.savedEpoch = self.currentEpoch
             self.state = "NA"
+            self.ser.write("W"+str(Tracker.STATES[self.state]))
             pyg.music.play()
 
     def trackSerial(self):
-        self.serBuffer += self.ser.read(self.ser.inWaiting() or 1)
-        if '\n' in self.serBuffer:
-            key, self.serBuffer = self.serBuffer.split('\n', 1)
-            key = key.strip()
-            self.queue.put(key)
+        if self.ser.inWaiting() > 0:
+            thisByte = self.ser.read()
+            self.ser.flushInput()
+            if thisByte == "E":
+                self.ser.write("W"+str(Tracker.STATES[self.state]))
+            elif thisByte in ["0", "1", "2", "3", "4"]:
+                self.setState(Tracker.STATES2[int(thisByte)])
+            else:
+                self.ser.write("RR")
 
     def updateFile(self, n, data):
         with open(Tracker.OUTFN, "a") as f:
