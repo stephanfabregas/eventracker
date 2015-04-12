@@ -73,7 +73,6 @@ class Tracker(tk.Frame):
         self.rowconfigure(1, pad=3)
         self.rowconfigure(2, pad=3)
 
-        # Canvas to read out current state and previous state
         self.display = Display(self)
         self.display.grid(row=0, columnspan=4, sticky=(tk.W+tk.E))
 
