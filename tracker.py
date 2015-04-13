@@ -1,5 +1,5 @@
 import pygame.mixer as pyg
-import serial
+#import serial
 import time
 try:
     import Tkinter as tk
@@ -24,7 +24,7 @@ class Display(tk.Canvas):
         self.create_text(150, 10, anchor=tk.CENTER, text=self.parent.state, tag="state")
 
     def onTimer(self):
-        self.parent.trackSerial()
+        #self.parent.trackSerial()
         self.parent.synch()
         self.drawStatus()
         self.after(Display.DELAY, self.onTimer)
@@ -34,8 +34,8 @@ class Tracker(tk.Frame):
     KEYS = {"Left":"Left", "Right":"Right", "Up":"Both", "Down":"Neither",
             "h":"Left", "j":"Neither", "k":"Both", "l":"Right", "0":"Left",
             "1":"Right", "2":"Both", "3":"Neither"}
-    STATES = {"Left":0, "Right":1, "Both":2, "Neither":3, "NA":4}
-    STATES2 = ["Left", "Right", "Up", "Down", "NA"]
+    #STATES = {"Left":0, "Right":1, "Both":2, "Neither":3, "NA":4}
+    #STATES2 = ["Left", "Right", "Up", "Down", "NA"]
     EPOCH_LENGTH = 30
     SOUND = "smb2_cherry.wav"
     OUTFN = "tracker.csv"
@@ -54,10 +54,10 @@ class Tracker(tk.Frame):
         self.bind_all("<Key>", self.onKeyPressed)
         self.initUI()
 
-        self.port = '/dev/ttyACM0'
-        self.baudrate = 9600
-        self.ser = serial.Serial(self.port, self.baudrate, timeout=1)        
-        self.trackSerial()
+        #self.port = '/dev/ttyACM0'
+        #self.baudrate = 9600
+        #self.ser = serial.Serial(self.port, self.baudrate, timeout=1)        
+        #self.trackSerial()
 
 
     def initUI(self):
@@ -105,7 +105,7 @@ class Tracker(tk.Frame):
             self.onExit()
 
         self.setState(key)
-        self.ser.write("W"+str(Tracker.STATES[self.state]))
+        #self.ser.write("W"+str(Tracker.STATES[self.state]))
         self.display.drawStatus()
 
     def setState(self, key):
@@ -126,19 +126,19 @@ class Tracker(tk.Frame):
             self.updateFile(0, self.state + ",")
             self.savedEpoch = self.currentEpoch
             self.state = "NA"
-            self.ser.write("W"+str(Tracker.STATES[self.state]))
+            #self.ser.write("W"+str(Tracker.STATES[self.state]))
             pyg.music.play()
 
-    def trackSerial(self):
-        if self.ser.inWaiting() > 0:
-            thisByte = self.ser.read()
-            self.ser.flushInput()
-            if thisByte == "E":
-                self.ser.write("W"+str(Tracker.STATES[self.state]))
-            elif thisByte in ["0", "1", "2", "3", "4"]:
-                self.setState(Tracker.STATES2[int(thisByte)])
-            else:
-                self.ser.write("RR")
+    #def trackSerial(self):
+    #    if self.ser.inWaiting() > 0:
+    #        thisByte = self.ser.read()
+    #        self.ser.flushInput()
+    #        if thisByte == "E":
+    #            self.ser.write("W"+str(Tracker.STATES[self.state]))
+    #        elif thisByte in ["0", "1", "2", "3", "4"]:
+    #            self.setState(Tracker.STATES2[int(thisByte)])
+    #        else:
+    #            self.ser.write("RR")
 
     def updateFile(self, n, data):
         with open(Tracker.OUTFN, "a") as f:
