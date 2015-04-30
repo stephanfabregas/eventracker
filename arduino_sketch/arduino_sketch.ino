@@ -1,15 +1,14 @@
-int ledPins[] = {8, 9, 10, 11};
+int ledPins[] = {8, 9, 10};
 int inputPins[] = {2, 3, 4, 5};
 int numPins = 4;
-unsigned long time;
 int state = 4;
 int val[] = {0, 0, 0, 0};
-unsigned long currentTime = 0;
 
 void setup() {
   for (int thisPin = 0; thisPin < numPins; thisPin++) {
     pinMode(ledPins[thisPin], OUTPUT);
     pinMode(inputPins[thisPin], INPUT);
+    digitalWrite(inputPins[thisPin], HIGH);
   }
   Serial.begin(9600);
 }
@@ -25,18 +24,16 @@ void loop(){
       if (byteTwo < 48 || byteTwo > 52) {
         Serial.print('E');
       } else {
-        state = byteTwo - 48;
+        state = byteTwo - 48; // Converting ASCII to number (ASCII 48 is 0)
         lightState(state);
       }
     } else {
       Serial.print('E');
     }
-  } else {
-  
+  } else {  
     for (int thisPin = 0; thisPin < numPins; thisPin++) {
       val[thisPin] = digitalRead(inputPins[thisPin]);
     }
-
     state = readState();
     lightState(state);
   }
@@ -44,9 +41,9 @@ void loop(){
 }
 
 int readState() {
-  if (val[state]!=HIGH) {
+  if (val[state]!=LOW) {
     for (int thisPin = 0; thisPin < numPins; thisPin++) {
-      if (val[thisPin]==HIGH) {
+      if (val[thisPin]==LOW) {
         Serial.print(thisPin);
         return(thisPin);
       }
@@ -56,11 +53,26 @@ int readState() {
 }
 
 void lightState(int state) {
-    for (int thisPin = 0; thisPin < numPins; thisPin++) {
+    for (int thisPin = 0; thisPin < numPins-1; thisPin++) {
       if (ledPins[thisPin]!=state) {
-        digitalWrite(ledPins[thisPin], LOW);
+        digitalWrite(ledPins[thisPin], HIGH);
       }
     }
-    digitalWrite(ledPins[state], HIGH);
+    switch (state) {
+      case 0:
+        digitalWrite(ledPins[1], LOW);
+        break;
+      case 1:
+        digitalWrite(ledPins[2], LOW);
+        break;
+      case 2:
+        for (int thisPin = 0; thisPin < numPins-1; thisPin++) {
+          digitalWrite(ledPins[thisPin], LOW);
+        }
+        break;
+      case 3:
+        digitalWrite(ledPins[0], LOW);
+        break;
+    }
 }
 
